@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>삼국지 중국어 3단 격파</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div id="bg-image"></div>
+
+    <div id="intro-container" class="start-hidden">
+      <h1>🐉 삼국지 중국어 3단 격파</h1>
+      <p class="subtitle">단어를 정복하고 전설의 랭커에 도전하세요!</p>
+
+      <div class="name-input-area">
+        <input
+          type="text"
+          id="player-name"
+          placeholder="당신의 이름을 입력하세요"
+          maxlength="8"
+          autocomplete="off"
+        />
+      </div>
+
+      <div class="instructions">
+        <h3>📜 게임 규칙</h3>
+        <ul>
+          <li>1️⃣ <b>한자 → 병음 → 뜻</b> 순서대로 격파하세요.</li>
+          <li>
+            2️⃣ 맞출수록 <b>속도 보너스</b>와 <b>콤보(Combo) 점수</b>가 쌓입니다.
+          </li>
+          <li>
+            3️⃣ <b>10콤보</b> 장각의 요술, <b>20콤보</b> 적벽의 화공을
+            조심하세요!
+          </li>
+          <li>
+            4️⃣ 위기의 순간, <b>돋보기</b>와 <b>얼음</b> 아이템을 사용하세요.
+          </li>
+        </ul>
+      </div>
+
+      <button id="start-game-btn" onclick="startGameFromIntro()">
+        전장으로 출진하기
+      </button>
+    </div>
+
+    <div id="game-container" class="screen-hidden">
+      <div id="header">
+        <audio id="bgm1" src="bgm1.mp3"></audio>
+        <audio id="bgm2" src="bgm2.mp3"></audio>
+
+        <div style="text-align: right; margin-bottom: 5px">
+          <button id="bgm-toggle" class="bgm-btn" onclick="toggleBGM()">
+            🎵 BGM: 켜짐
+          </button>
+        </div>
+
+        <h1>중국어 3단 격파</h1>
+        <div id="timer-container"><div id="timer-bar"></div></div>
+        <div id="status-bar">
+          <div class="stat-box">
+            🚩 STAGE <span id="stage">1</span> | 점수: <span id="score">0</span>
+            <span id="combo-text" class="combo-hidden"
+              >🔥 <span id="combo-count">0</span> COMBO!</span
+            >
+          </div>
+          <div id="message">한자 → 병음 → 뜻 순서로 고르세요!</div>
+        </div>
+
+        <div id="penalty-banner" class="hidden">🚨 페널티 경고문</div>
+      </div>
+
+      <div class="grid-container">
+        <div class="row-group">
+          <div class="row-label">1단계: 한자 (Hanja)</div>
+          <div class="row" id="hanja-row"></div>
+        </div>
+        <div class="row-group">
+          <div class="row-label">2단계: 병음 (Pinyin)</div>
+          <div class="row" id="pinyin-row"></div>
+        </div>
+        <div class="row-group">
+          <div class="row-label">3단계: 뜻 (Meaning)</div>
+          <div class="row" id="korean-row"></div>
+        </div>
+      </div>
+
+      <div id="item-zone">
+        <button class="item-btn" id="item-hint" onclick="useHint()">
+          🔍 부분 돋보기 (<span id="hint-count">1</span>)
+        </button>
+        <button class="item-btn" id="item-freeze" onclick="useFreeze()">
+          ❄️ 얼음 (<span id="freeze-count">1</span>)
+        </button>
+      </div>
+
+      <div id="footer">
+        <button id="reset-btn" onclick="surrenderGame()">
+          포기하고 랭킹 보기
+        </button>
+      </div>
+    </div>
+
+    <div id="ranking-container" class="screen-hidden">
+      <h1>🏆 명예의 전당</h1>
+      <p id="ranking-msg">아쉽네요! 조금만 더 하면 1등을 노려볼 수 있어요!</p>
+
+      <div class="ranking-board">
+        <ul id="ranking-list"></ul>
+      </div>
+
+      <button id="restart-btn" onclick="backToIntro()">다시 도전하기</button>
+    </div>
+
+    <div id="event-modal" class="hidden modal-overlay">
+      <div class="modal-content">
+        <h2 id="event-title">영웅의 제안</h2>
+        <img
+          id="event-image"
+          src=""
+          alt="이벤트 영웅 이미지"
+          style="
+            display: none;
+            width: 120px;
+            height: 120px;
+            margin: 10px auto;
+            border-radius: 50%;
+            border: 3px solid #b71c1c;
+            object-fit: cover;
+          "
+        />
+        <p id="event-desc">이벤트 설명</p>
+        <div class="modal-buttons">
+          <button class="btn-accept" onclick="acceptEvent()">수락</button>
+          <button class="btn-decline" onclick="declineEvent()">거절</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="alert-modal" class="hidden modal-overlay">
+      <div class="modal-content">
+        <h2 id="alert-title">알림</h2>
+        <p id="alert-desc" style="white-space: pre-line">내용</p>
+        <div class="modal-buttons">
+          <button class="btn-confirm" onclick="closeAlert()">확인</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
