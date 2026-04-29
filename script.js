@@ -439,7 +439,7 @@ let eventDB = [
   {
     id: 'redhare',
     title: '🐎 여포의 적토마',
-    image: 'images/lvbu.png',
+    image: 'images2/lvbu.png',
     desc: '시간이 2배 빨리 줄어들지만, 정답 점수가 3배가 됩니다.',
     action: () => {
       stageTimerSpeed = 1.0;
@@ -449,7 +449,7 @@ let eventDB = [
   {
     id: 'eastwind',
     title: '🍃 제갈량의 동남풍',
-    image: 'images/zhuge.png',
+    image: 'images2/zhuge.png',
     desc: '10초 동안 전장의 시간이 멈춥니다!',
     action: () => {
       isFrozen = true;
@@ -463,7 +463,7 @@ let eventDB = [
   {
     id: 'zhangfei',
     title: '🗣️ 장비의 장판교 전투',
-    image: 'images/zhangfei.png',
+    image: 'images2/zhangfei.png',
     desc: '적군 하나 세트가 즉시 제거됩니다. 대신 남은 시간 15% 감소!',
     action: () => {
       timeLeft -= 15;
@@ -473,7 +473,7 @@ let eventDB = [
   {
     id: 'huatuo',
     title: '💊 화타의 마불산',
-    image: 'images/huatuo.png',
+    image: 'images2/huatuo.png',
     desc: '타이머가 30% 즉시 회복됩니다.',
     action: () => {
       timeLeft = Math.min(100, timeLeft + 30);
@@ -482,7 +482,7 @@ let eventDB = [
   {
     id: 'guanyu',
     title: '🛡️ 관우의 오관육장 돌파',
-    image: 'images/guanyu.png',
+    image: 'images2/guanyu.png',
     desc: '오답 페널티 1회 방패 획득! (콤보 초기화)',
     action: () => {
       shieldCount++;
@@ -495,7 +495,7 @@ let eventDB = [
   {
     id: 'liubei',
     title: '🤝 유비의 삼고초려',
-    image: 'images/liubei.png',
+    image: 'images2/liubei.png',
     desc: '돋보기(힌트) 3개를 얻는 대신 현재 점수의 10%를 잃습니다.',
     action: () => {
       items.hint += 3;
@@ -507,7 +507,7 @@ let eventDB = [
   {
     id: 'zhaoyun',
     title: '🏇 조자룡의 단기필마',
-    image: 'images/zhaoyun.png',
+    image: 'images2/zhaoyun.png',
     desc: '단어 2쌍이 즉시 파괴되지만, 남은 시간이 30% 날아갑니다.',
     action: () => {
       timeLeft -= 30;
@@ -518,7 +518,7 @@ let eventDB = [
   {
     id: 'caocao',
     title: '🌾 조조의 둔전제',
-    image: 'images/caocao.png',
+    image: 'images2/caocao.png',
     desc: '얼음(시간정지) 아이템 2개를 얻지만 콤보가 0으로 초기화됩니다.',
     action: () => {
       items.freeze += 2;
@@ -530,7 +530,7 @@ let eventDB = [
   {
     id: 'diaochan',
     title: '💃 초선의 미인계',
-    image: 'images/diaochan.png',
+    image: 'images2/diaochan.png',
     desc: '즉시 보너스 30,000점을 얻지만, 타이머가 30%로 감소합니다!',
     action: () => {
       score += 30000;
@@ -541,7 +541,7 @@ let eventDB = [
   {
     id: 'sunquan',
     title: '🏰 손권의 수성',
-    image: 'images/sunquan.png',
+    image: 'images2/sunquan.png',
     desc: '시간이 100%로 차오르지만, 다음 스테이지 점수 획득량이 0.5배가 됩니다.',
     action: () => {
       timeLeft = 100;
