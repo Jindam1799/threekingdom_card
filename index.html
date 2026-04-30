@@ -7,11 +7,69 @@
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
+    <!-- 🌌 배경 이미지 영역 -->
     <div id="bg-image"></div>
 
-    <div id="intro-container" class="start-hidden">
-      <h1>🐉 삼국지 중국어 3단 격파</h1>
-      <p class="subtitle">단어를 정복하고 전설의 랭커에 도전하세요!</p>
+    <!-- 1️⃣ 최초 모드 선택 화면 -->
+    <div id="mode-select-container" class="start-hidden">
+      <h1>🐉 삼국지 중국어 격파</h1>
+      <p class="subtitle">어떤 길을 선택하시겠습니까?</p>
+      <div class="mode-buttons">
+        <button class="btn-training" onclick="showTrainingSetup()">
+          ⚔️ 훈련하기 (연습)
+        </button>
+        <button class="btn-challenge" onclick="showChallengeSetup()">
+          🔥 출진하기 (랭킹전)
+        </button>
+      </div>
+    </div>
+
+    <!-- 2️⃣ 훈련 모드 스테이지 선택 화면 -->
+    <div id="training-setup-container" class="screen-hidden">
+      <h1>⚔️ 훈련장</h1>
+      <p class="subtitle">
+        훈련할 장(스테이지)을 선택하세요.<br />(각 장마다 30개의 단어가 순서대로
+        등장합니다)
+      </p>
+      <div class="stage-grid">
+        <button onclick="startTraining(1)">
+          제 1 장<br /><small>(1~30)</small>
+        </button>
+        <button onclick="startTraining(2)">
+          제 2 장<br /><small>(31~60)</small>
+        </button>
+        <button onclick="startTraining(3)">
+          제 3 장<br /><small>(61~90)</small>
+        </button>
+        <button onclick="startTraining(4)">
+          제 4 장<br /><small>(91~120)</small>
+        </button>
+        <button onclick="startTraining(5)">
+          제 5 장<br /><small>(121~150)</small>
+        </button>
+        <button onclick="startTraining(6)">
+          제 6 장<br /><small>(151~180)</small>
+        </button>
+        <button onclick="startTraining(7)">
+          제 7 장<br /><small>(181~210)</small>
+        </button>
+        <button onclick="startTraining(8)">
+          제 8 장<br /><small>(211~240)</small>
+        </button>
+        <button onclick="startTraining(9)">
+          제 9 장<br /><small>(241~270)</small>
+        </button>
+        <button onclick="startTraining(10)">
+          제 10 장<br /><small>(271~300)</small>
+        </button>
+      </div>
+      <button class="btn-back" onclick="backToModeSelect()">돌아가기</button>
+    </div>
+
+    <!-- 3️⃣ 도전 모드(출진) 이름 입력 화면 -->
+    <div id="intro-container" class="screen-hidden">
+      <h1>🔥 전장 출진</h1>
+      <p class="subtitle">이름을 걸고 100인의 랭커들과 승부하세요!</p>
 
       <div class="name-input-area">
         <input
@@ -24,27 +82,29 @@
       </div>
 
       <div class="instructions">
-        <h3>📜 게임 규칙</h3>
+        <h3>📜 랭킹전 규칙</h3>
         <ul>
-          <li>1️⃣ <b>한자 → 병음 → 뜻</b> 순서대로 격파하세요.</li>
+          <li>1️⃣ 한자 → 병음 → 뜻 순서대로 격파!</li>
           <li>
-            2️⃣ 맞출수록 <b>속도 보너스</b>와 <b>콤보(Combo) 점수</b>가 쌓입니다.
+            2️⃣ <b>아이템(돋보기, 얼음)</b>과 영웅의 <b>이벤트</b>가 등장합니다.
           </li>
-          <li>
-            3️⃣ <b>10콤보</b> 장각의 요술, <b>20콤보</b> 적벽의 화공을
-            조심하세요!
-          </li>
-          <li>
-            4️⃣ 위기의 순간, <b>돋보기</b>와 <b>얼음</b> 아이템을 사용하세요.
-          </li>
+          <li>3️⃣ <b>10콤보</b> 장각의 요술, <b>20콤보</b> 적벽의 화공 주의!</li>
         </ul>
       </div>
 
       <button id="start-game-btn" onclick="startGameFromIntro()">
         전장으로 출진하기
       </button>
+      <button
+        class="btn-back"
+        onclick="backToModeSelect()"
+        style="margin-top: 10px"
+      >
+        돌아가기
+      </button>
     </div>
 
+    <!-- 4️⃣ 메인 게임 화면 -->
     <div id="game-container" class="screen-hidden">
       <div id="header">
         <audio id="bgm1" src="bgm1.mp3"></audio>
@@ -56,7 +116,7 @@
           </button>
         </div>
 
-        <h1>중국어 3단 격파</h1>
+        <h1 id="game-title">중국어 격파</h1>
         <div id="timer-container"><div id="timer-bar"></div></div>
         <div id="status-bar">
           <div class="stat-box">
@@ -86,6 +146,7 @@
         </div>
       </div>
 
+      <!-- 훈련 모드에서는 숨겨질 아이템 존 -->
       <div id="item-zone">
         <button class="item-btn" id="item-hint" onclick="useHint()">
           🔍 부분 돋보기 (<span id="hint-count">1</span>)
@@ -96,12 +157,11 @@
       </div>
 
       <div id="footer">
-        <button id="reset-btn" onclick="surrenderGame()">
-          포기하고 랭킹 보기
-        </button>
+        <button id="reset-btn" onclick="surrenderGame()">포기하기</button>
       </div>
     </div>
 
+    <!-- 5️⃣ 랭킹 화면 -->
     <div id="ranking-container" class="screen-hidden">
       <h1>🏆 명예의 전당</h1>
       <p id="ranking-msg">아쉽네요! 조금만 더 하면 1등을 노려볼 수 있어요!</p>
@@ -110,9 +170,12 @@
         <ul id="ranking-list"></ul>
       </div>
 
-      <button id="restart-btn" onclick="backToIntro()">다시 도전하기</button>
+      <button id="restart-btn" onclick="backToModeSelect()">
+        메인으로 돌아가기
+      </button>
     </div>
 
+    <!-- 삼국지 선택 이벤트 모달 -->
     <div id="event-modal" class="hidden modal-overlay">
       <div class="modal-content">
         <h2 id="event-title">영웅의 제안</h2>
@@ -138,6 +201,7 @@
       </div>
     </div>
 
+    <!-- 공통 알림 팝업 -->
     <div id="alert-modal" class="hidden modal-overlay">
       <div class="modal-content">
         <h2 id="alert-title">알림</h2>
