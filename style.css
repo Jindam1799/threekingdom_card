@@ -2,7 +2,7 @@
   --hanja-color: #ff7043;
   --pinyin-color: #42a5f5;
   --korean-color: #66bb6a;
-  --bg-color: #000; /* 배경을 까맣게 */
+  --bg-color: #000;
 }
 
 body {
@@ -14,16 +14,14 @@ body {
   min-height: 100vh;
   margin: 0;
   transition: background-color 0.5s;
-  overflow: hidden; /* 배경 이미지가 스크롤바를 만들지 않도록 */
+  overflow: hidden;
 }
 
-/* 터치 기기 최적화: 빠른 연타 시 화면 확대(줌) 방지 */
 button,
 .card,
 input {
   touch-action: manipulation;
 }
-
 body.fire-bg {
   background-color: rgba(255, 0, 0, 0.3) !important;
 }
@@ -31,7 +29,7 @@ body.fire-bg {
   display: none !important;
 }
 
-/* 🌌 배경 이미지 연출 CSS */
+/* 🌌 배경 이미지 연출 */
 #bg-image {
   position: fixed;
   top: 0;
@@ -51,19 +49,14 @@ body.fire-bg {
   transform: scale(1.05);
 }
 
-/* 인트로 애니메이션을 위한 클래스 */
+/* 인트로 애니메이션 */
 .start-hidden {
   opacity: 0;
   transform: translateY(20px);
   pointer-events: none;
 }
-#intro-container {
-  transition:
-    opacity 1.5s ease,
-    transform 1.5s ease;
-}
-
-/* === 컨테이너들을 반투명하게 (유리 효과) === */
+#mode-select-container,
+#training-setup-container,
 #intro-container,
 #game-container,
 #ranking-container {
@@ -77,16 +70,17 @@ body.fire-bg {
   text-align: center;
   border: 3px solid rgba(255, 255, 255, 0.3);
   box-sizing: border-box;
+  transition:
+    opacity 0.5s ease,
+    transform 0.5s ease;
 }
-
 #game-container,
 #ranking-container {
   padding: 25px 30px;
   max-width: 450px;
 }
 
-/* === 인트로 & 이름 입력창 === */
-#intro-container h1 {
+h1 {
   color: #b71c1c;
   margin-top: 0;
   font-size: 2rem;
@@ -98,6 +92,90 @@ body.fire-bg {
   word-break: keep-all;
 }
 
+/* 모드 선택 버튼 */
+.mode-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-top: 30px;
+}
+.btn-training {
+  background: #1976d2;
+  color: white;
+  border: none;
+  padding: 20px;
+  font-size: 1.3rem;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: bold;
+  box-shadow: 0 5px 15px rgba(25, 118, 210, 0.3);
+  transition: 0.2s;
+}
+.btn-training:hover {
+  background: #1565c0;
+  transform: translateY(-3px);
+}
+.btn-challenge {
+  background: #b71c1c;
+  color: white;
+  border: none;
+  padding: 20px;
+  font-size: 1.3rem;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: bold;
+  box-shadow: 0 5px 15px rgba(183, 28, 28, 0.3);
+  transition: 0.2s;
+}
+.btn-challenge:hover {
+  background: #d32f2f;
+  transform: translateY(-3px);
+}
+.btn-back {
+  background: #757575;
+  color: white;
+  border: none;
+  padding: 12px;
+  font-size: 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  width: 100%;
+  margin-top: 20px;
+  transition: 0.2s;
+}
+.btn-back:hover {
+  background: #616161;
+}
+
+/* 훈련장 스테이지 그리드 */
+.stage-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-top: 20px;
+}
+.stage-grid button {
+  background: #f8f9fa;
+  border: 2px solid #1976d2;
+  color: #1976d2;
+  padding: 12px;
+  border-radius: 10px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.stage-grid button:hover {
+  background: #1976d2;
+  color: white;
+}
+.stage-grid small {
+  font-size: 0.8rem;
+  font-weight: normal;
+}
+
+/* 이름 입력 및 기존 요소들 */
 .name-input-area {
   margin-bottom: 20px;
 }
@@ -115,7 +193,6 @@ body.fire-bg {
 #player-name:focus {
   box-shadow: 0 0 10px rgba(183, 28, 28, 0.3);
 }
-
 .instructions {
   text-align: left;
   background: #fffdf5;
@@ -152,7 +229,6 @@ body.fire-bg {
   font-weight: bold;
   transition: 0.2s;
   box-shadow: 0 5px 15px rgba(183, 28, 28, 0.3);
-  margin-top: 15px;
   width: 100%;
 }
 #start-game-btn:hover,
@@ -163,9 +239,9 @@ body.fire-bg {
 
 /* === 게임 화면 === */
 #header h1 {
-  margin: 0 0 15px 0;
   font-size: 1.5rem;
   color: #333;
+  margin: 0 0 15px 0;
 }
 #timer-container {
   width: 100%;
@@ -225,7 +301,6 @@ body.fire-bg {
   margin-bottom: 5px;
   word-break: keep-all;
 }
-
 #penalty-banner {
   background-color: #b71c1c;
   color: #fff;
@@ -276,7 +351,6 @@ body.fire-bg {
   gap: 10px;
   min-height: 65px;
 }
-
 .card {
   height: 65px;
   background: white;
@@ -303,7 +377,6 @@ body.fire-bg {
   border-color: var(--korean-color);
   color: var(--korean-color);
 }
-
 .card.selected {
   background-color: #fff9c4;
   transform: scale(1.05);
@@ -337,7 +410,6 @@ body.fire-bg {
   }
 }
 
-/* BGM 버튼 */
 .bgm-btn {
   background: #ffb74d;
   color: #fff;
@@ -354,7 +426,6 @@ body.fire-bg {
   background: #f57c00;
   transform: translateY(-2px);
 }
-
 #item-zone {
   display: flex;
   justify-content: center;
@@ -395,7 +466,7 @@ body.fire-bg {
   box-sizing: border-box;
 }
 
-/* === 랭킹 화면 === */
+/* 랭킹 화면 */
 #ranking-container h1 {
   color: #f57f17;
   margin-top: 0;
@@ -406,7 +477,6 @@ body.fire-bg {
   margin-bottom: 20px;
   word-break: keep-all;
 }
-
 .ranking-board {
   background: #f8f9fa;
   border-radius: 12px;
@@ -430,7 +500,6 @@ body.fire-bg {
 #ranking-list li:last-child {
   border-bottom: none;
 }
-
 .rank-1 {
   color: #fbc02d;
   font-size: 1.3rem !important;
@@ -450,7 +519,7 @@ body.fire-bg {
   animation: popIn 0.5s;
 }
 
-/* === 모달 CSS === */
+/* 모달 CSS */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -546,25 +615,31 @@ body.fire-bg {
   }
 }
 
-/* =========================================
-   📱 모바일 화면 최적화 (반응형 미디어 쿼리) 
-   ========================================= */
+/* 모바일 화면 최적화 */
 @media screen and (max-width: 480px) {
-  /* 전체 컨테이너 여백 축소 */
+  #mode-select-container,
+  #training-setup-container,
   #intro-container,
   #game-container,
   #ranking-container {
     padding: 20px 15px;
     width: 95%;
   }
-
-  /* 인트로 폰트 조정 */
-  #intro-container h1 {
+  h1 {
     font-size: 1.6rem;
   }
   .subtitle {
     font-size: 0.9rem;
     margin-bottom: 15px;
+  }
+  .stage-grid button {
+    font-size: 0.95rem;
+    padding: 10px;
+  }
+  .btn-training,
+  .btn-challenge {
+    font-size: 1.1rem;
+    padding: 15px;
   }
   .instructions {
     padding: 15px;
@@ -580,8 +655,6 @@ body.fire-bg {
     padding: 12px;
     font-size: 1.1rem;
   }
-
-  /* 게임 화면 카드 크기 및 폰트 축소 */
   #header h1 {
     font-size: 1.3rem;
     margin-bottom: 10px;
@@ -593,7 +666,6 @@ body.fire-bg {
     font-size: 0.85rem;
     min-height: 1.2rem;
   }
-
   .row {
     gap: 6px;
     min-height: 55px;
@@ -604,8 +676,6 @@ body.fire-bg {
     border-radius: 8px;
     border-width: 1.5px;
   }
-
-  /* 아이템 버튼 영역 축소 */
   #item-zone {
     gap: 10px;
     margin-top: 15px;
@@ -614,8 +684,6 @@ body.fire-bg {
     padding: 8px 5px;
     font-size: 0.85rem;
   }
-
-  /* 랭킹 화면 축소 */
   #ranking-container h1 {
     font-size: 1.5rem;
   }
@@ -623,8 +691,6 @@ body.fire-bg {
     font-size: 0.95rem;
     padding: 10px;
   }
-
-  /* 팝업 모달 축소 */
   .modal-content {
     padding: 20px 15px;
   }
