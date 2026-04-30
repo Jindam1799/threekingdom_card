@@ -301,6 +301,21 @@ const wordList = [
   { id: 299, cn: '最近', py: 'zuìjìn', kr: '최근' },
   { id: 300, cn: '变化', py: 'biànhuà', kr: '변화' },
 ];
+
+// ============= 2. 관직 칭호 및 랭킹 데이터 =============
+const trainingTitles = [
+  '십호장 (十戶長)',
+  '백부장 (百夫長)',
+  '군사마 (軍司馬)',
+  '도위 (都尉)',
+  '교위 (校尉)',
+  '중랑장 (中郞將)',
+  '태수 (太守)',
+  '장군 (將軍)',
+  '대장군 (大將軍)',
+  '승상 (丞相)',
+];
+
 // ============= 100+ 가상 랭커 이름 데이터 =============
 const fakeNamesPool = [
   '오나라오나라',
@@ -397,18 +412,18 @@ const fakeNamesPool = [
   '장료',
 ];
 
-// 고정된 최상위 랭커 1~5위
+// 1~5위 절대 고정 점수 (이론상 최대치 반영)
 const topFixedRankers = [
-  { name: '제갈량', score: 2850000, isPlayer: false },
-  { name: '조조', score: 2420000, isPlayer: false },
-  { name: '사마의', score: 2150000, isPlayer: false },
-  { name: '중국어신동', score: 1880000, isPlayer: false },
-  { name: '여포', score: 1650000, isPlayer: false },
+  { name: '제갈량', score: 2015670, isPlayer: false },
+  { name: '조조', score: 1932467, isPlayer: false },
+  { name: '사마의', score: 1250693, isPlayer: false },
+  { name: '중국어신동', score: 1002310, isPlayer: false },
+  { name: '여포', score: 1001211, isPlayer: false },
 ];
-
-// ============= 게임 상태 변수 =============
-let isTrainingMode = false; // ★ 모드 구분용 플래그
-let remainingWordsPool = []; // 현재 게임(모드)에서 사용할 남은 단어들
+// ============= 3. 게임 상태 변수 =============
+let isTrainingMode = false;
+let currentTrainingStage = 1;
+let remainingWordsPool = [];
 
 let playerName = '도전자';
 let selections = { hanja: null, pinyin: null, korean: null };
@@ -419,6 +434,7 @@ let score = 0,
   timerId = null;
 let items = { hint: 1, freeze: 1 };
 let isFrozen = false;
+let isProcessingMatch = false;
 let cardsData = { hanja: [], pinyin: [], korean: [] };
 let activeIds = [];
 let currentTurnStartTime = 0;
@@ -435,7 +451,7 @@ let alertCallback = null;
 let currentBgmIndex = 1;
 let isBgmPlaying = false;
 
-// ============= 이벤트 DB =============
+// ============= 4. 삼국지 이벤트 DB =============
 let eventDB = [
   {
     id: 'redhare',
@@ -468,7 +484,7 @@ let eventDB = [
     desc: '적군 하나 세트가 즉시 제거됩니다. 대신 남은 시간 15% 감소!',
     action: () => {
       timeLeft -= 15;
-      autoSolveOne();
+      setTimeout(autoSolveOne, 100);
     },
   },
   {
@@ -512,8 +528,8 @@ let eventDB = [
     desc: '단어 2쌍이 즉시 파괴되지만, 남은 시간이 30% 날아갑니다.',
     action: () => {
       timeLeft -= 30;
-      autoSolveOne();
-      setTimeout(autoSolveOne, 300);
+      setTimeout(autoSolveOne, 100);
+      setTimeout(autoSolveOne, 400);
     },
   },
   {
@@ -534,7 +550,7 @@ let eventDB = [
     image: 'images2/diaochan.png',
     desc: '즉시 보너스 30,000점을 얻지만, 타이머가 30%로 감소합니다!',
     action: () => {
-      score += 30000;
+      score = Number(score) + 30000;
       timeLeft = 30;
       document.getElementById('score').innerText = score.toLocaleString();
     },
@@ -551,7 +567,7 @@ let eventDB = [
   },
 ];
 
-// ============= 초기 세팅 및 화면 제어 =============
+// ============= 5. 초기 세팅 및 UI 제어 =============
 document.addEventListener('DOMContentLoaded', () => {
   const bgm1 = document.getElementById('bgm1');
   const bgm2 = document.getElementById('bgm2');
@@ -570,7 +586,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // 처음에 배경 보이다가 UI 등장
   setTimeout(() => {
     const bgImage = document.getElementById('bg-image');
     const modeSelect = document.getElementById('mode-select-container');
@@ -601,9 +616,26 @@ function backToModeSelect() {
 
 function showTrainingSetup() {
   hideAllScreens();
-  document
-    .getElementById('training-setup-container')
-    .classList.remove('screen-hidden');
+  const container = document.getElementById('training-setup-container');
+  container.classList.remove('screen-hidden');
+
+  const clearedStages = JSON.parse(
+    localStorage.getItem('trainingProgressV11') || '[]',
+  );
+  const buttons = container.querySelectorAll('.stage-grid button');
+
+  buttons.forEach((btn, index) => {
+    const stageNum = index + 1;
+    if (clearedStages.includes(stageNum)) {
+      btn.classList.add('cleared');
+      const oldTitle = btn.querySelector('.reward-title');
+      if (oldTitle) oldTitle.remove();
+      const titleSpan = document.createElement('span');
+      titleSpan.className = 'reward-title';
+      titleSpan.innerText = trainingTitles[index];
+      btn.appendChild(titleSpan);
+    }
+  });
 }
 
 function showChallengeSetup() {
@@ -611,7 +643,6 @@ function showChallengeSetup() {
   document.getElementById('intro-container').classList.remove('screen-hidden');
 }
 
-// BGM
 function startBGM() {
   if (!isBgmPlaying) return;
   const bgm1 = document.getElementById('bgm1'),
@@ -644,7 +675,6 @@ function showAlert(title, desc, callback = null) {
   document.getElementById('alert-modal').classList.remove('hidden');
   alertCallback = callback;
 }
-
 function closeAlert() {
   document.getElementById('alert-modal').classList.add('hidden');
   isFrozen = false;
@@ -654,10 +684,8 @@ function closeAlert() {
   }
 }
 
-// ============= 게임 시작 (모드 분리) =============
-// 1. 훈련 모드 시작
+// ============= 6. 게임 시작 로직 =============
 function startTraining(stageNum) {
-  // 단어 데이터 보호장치 (단어가 부족할 경우 에러 방지)
   const startIndex = (stageNum - 1) * 30;
   const endIndex = stageNum * 30;
 
@@ -670,16 +698,14 @@ function startTraining(stageNum) {
   }
 
   isTrainingMode = true;
+  currentTrainingStage = stageNum;
   playerName = `훈련병 (제 ${stageNum} 장)`;
   document.getElementById('game-title').innerText = `⚔️ 제 ${stageNum} 장 훈련`;
 
-  // 순서대로 30개 자르기 (셔플 안함)
   remainingWordsPool = wordList.slice(startIndex, endIndex);
 
   hideAllScreens();
   document.getElementById('game-container').classList.remove('screen-hidden');
-
-  // 아이템 존 숨기기
   document.getElementById('item-zone').style.display = 'none';
 
   isBgmPlaying = true;
@@ -688,7 +714,6 @@ function startTraining(stageNum) {
   startGame();
 }
 
-// 2. 도전 모드 시작
 function startGameFromIntro() {
   const nameInput = document.getElementById('player-name').value.trim();
   if (!nameInput) {
@@ -700,13 +725,10 @@ function startGameFromIntro() {
   playerName = nameInput;
   document.getElementById('game-title').innerText = `🔥 랭킹전 출진`;
 
-  // 300개 단어 전부 가져와서 무작위로 섞기
   remainingWordsPool = shuffleArray([...wordList]);
 
   hideAllScreens();
   document.getElementById('game-container').classList.remove('screen-hidden');
-
-  // 아이템 존 보이기
   document.getElementById('item-zone').style.display = 'flex';
 
   isBgmPlaying = true;
@@ -740,35 +762,59 @@ function startGame() {
   stage = 1;
   timeLeft = 100;
   isFrozen = false;
+  isProcessingMatch = false;
   items = { hint: 1, freeze: 1 };
   shieldCount = 0;
   stageTimerSpeed = 0.5;
   eventScoreMultiplier = 1;
-  clearPenaltyEffects();
+  cardsData = { hanja: [], pinyin: [], korean: [] };
+  activeIds = [];
+
   document.getElementById('score').innerText = score;
   document.getElementById('stage').innerText = stage;
+  document.getElementById('message').innerText =
+    '한자 → 병음 → 뜻 순서로 고르세요!';
+  document.getElementById('timer-bar').style.width = '100%';
+  document.getElementById('timer-bar').style.background = '#4caf50';
+  document.getElementById('hanja-row').innerHTML = '';
+  document.getElementById('pinyin-row').innerHTML = '';
+  document.getElementById('korean-row').innerHTML = '';
+
+  clearPenaltyEffects();
   updateComboDisplay();
   updateItemDisplay();
+
   if (timerId) clearInterval(timerId);
   startNextStage();
   startTimer();
 }
 
 function startNextStage() {
-  stageTimerSpeed = 0.5;
-  eventScoreMultiplier = 1;
-  if (eastwindTimeout) clearTimeout(eastwindTimeout);
-  isFrozen = false;
+  // ★ 버그 수정: 여기서 초기화하던 코드를 삭제하여, 이벤트 버프가 지워지지 않게 수정했습니다!
 
-  // 남은 단어가 없으면 풀을 리필 (도전 모드만 무한 반복, 훈련 모드는 클리어 처리)
-  if (remainingWordsPool.length === 0) {
+  if (
+    remainingWordsPool.length === 0 &&
+    cardsData.hanja.every((c) => c.solved)
+  ) {
     if (isTrainingMode) {
       if (timerId) clearInterval(timerId);
+      let clearedStages = JSON.parse(
+        localStorage.getItem('trainingProgressV11') || '[]',
+      );
+      if (!clearedStages.includes(currentTrainingStage)) {
+        clearedStages.push(currentTrainingStage);
+        localStorage.setItem(
+          'trainingProgressV11',
+          JSON.stringify(clearedStages),
+        );
+      }
+
+      const rankName = trainingTitles[currentTrainingStage - 1];
       showAlert(
-        '훈련 완료!',
-        '해당 장의 모든 단어를 격파했습니다!\n정말 훌륭합니다.',
+        '🎖️ 관직 하사',
+        `축하합니다!\n제 ${currentTrainingStage}장을 완벽히 정복하여\n당신을 [${rankName}]에 임명합니다!`,
         () => {
-          backToModeSelect();
+          showTrainingSetup();
         },
       );
       return;
@@ -777,20 +823,21 @@ function startNextStage() {
     }
   }
 
-  // 앞에서부터 3개씩 뽑기 (훈련 모드는 원래 순서 유지됨, 도전 모드는 이미 셔플되어 있음)
-  const currentWords = remainingWordsPool.splice(0, 3);
-  activeIds = currentWords.map((w) => w.id);
-
-  // 뽑은 3개의 카드는 화면상에서 섞이도록 처리
-  cardsData.hanja = shuffleArray(
-    currentWords.map((w) => ({ id: w.id, text: w.cn, solved: false })),
-  );
-  cardsData.pinyin = shuffleArray(
-    currentWords.map((w) => ({ id: w.id, text: w.py, solved: false })),
-  );
-  cardsData.korean = shuffleArray(
-    currentWords.map((w) => ({ id: w.id, text: w.kr, solved: false })),
-  );
+  if (cardsData.hanja.length === 0 || cardsData.hanja.every((c) => c.solved)) {
+    const currentWords = remainingWordsPool.splice(0, 3);
+    if (currentWords.length > 0) {
+      activeIds = currentWords.map((w) => w.id);
+      cardsData.hanja = shuffleArray(
+        currentWords.map((w) => ({ id: w.id, text: w.cn, solved: false })),
+      );
+      cardsData.pinyin = shuffleArray(
+        currentWords.map((w) => ({ id: w.id, text: w.py, solved: false })),
+      );
+      cardsData.korean = shuffleArray(
+        currentWords.map((w) => ({ id: w.id, text: w.kr, solved: false })),
+      );
+    }
+  }
 
   currentTurnStartTime = Date.now();
   refreshBoard();
@@ -803,12 +850,13 @@ function startTimer() {
       const timerBar = document.getElementById('timer-bar');
       timerBar.style.width = timeLeft + '%';
       timerBar.style.background = timeLeft < 30 ? '#f44336' : '#4caf50';
+
       if (timeLeft <= 0) {
         clearInterval(timerId);
         if (isTrainingMode) {
           showAlert(
             '시간 초과!',
-            `조금 더 연습해 봅시다!\n달성한 훈련도: ${stage}단계`,
+            `시간이 다 되었습니다. 조금 더 연습해 봅시다!\n달성한 훈련도: ${stage}단계`,
             () => {
               backToModeSelect();
             },
@@ -827,7 +875,7 @@ function startTimer() {
   }, 100);
 }
 
-// ============= 게임 플레이 로직 =============
+// ============= 7. 게임 플레이 =============
 function autoSolveOne() {
   const target = cardsData.hanja.find((c) => !c.solved);
   if (target) {
@@ -860,6 +908,8 @@ function renderRow(rowId, items, type) {
 }
 
 function selectCard(cardElement, type, id) {
+  if (isFrozen || isProcessingMatch) return;
+
   if (type === 'pinyin' && !selections.hanja) return;
   if (type === 'korean' && !selections.pinyin) return;
   const rowCards = cardElement.parentElement.querySelectorAll('.card');
@@ -871,6 +921,8 @@ function selectCard(cardElement, type, id) {
 
 function checkMatch() {
   const { hanja, pinyin, korean } = selections;
+  isProcessingMatch = true;
+
   if (hanja === pinyin && pinyin === korean) {
     clearPenaltyEffects();
     let timeTaken = (Date.now() - currentTurnStartTime) / 1000;
@@ -881,7 +933,7 @@ function checkMatch() {
       (100 + speedBonus) * comboMultiplier * eventScoreMultiplier,
     );
 
-    score += earnedScore;
+    score = Number(score) + Number(earnedScore);
     timeLeft = Math.min(100, timeLeft + 15);
     document.getElementById('score').innerText = score.toLocaleString();
     updateComboDisplay();
@@ -894,7 +946,6 @@ function checkMatch() {
     cardsData.pinyin.find((c) => c.id === hanja).solved = true;
     cardsData.korean.find((c) => c.id === hanja).solved = true;
 
-    // 훈련 모드에서는 페널티(화공/요술)를 발동시키지 않음!
     if (!isTrainingMode && combo > 0) {
       if (combo % 20 === 0) {
         activePenalty = 'fire';
@@ -916,25 +967,36 @@ function checkMatch() {
       stage++;
       document.getElementById('stage').innerText = stage;
 
+      // ★ 버그 수정: 스테이지가 끝났으므로 이전 버프들을 여기서 깔끔하게 리셋합니다. (이후에 이벤트가 덮어씌움)
+      stageTimerSpeed = 0.5;
+      eventScoreMultiplier = 1;
+      isFrozen = false;
+      if (eastwindTimeout) clearTimeout(eastwindTimeout);
+
       if (activePenalty) {
         document.getElementById('message').innerText =
-          `STAGE ${stage - 1} 클리어! 하지만 페널티가 이어집니다!`;
-        setTimeout(() => startNextStage(), 800);
+          `STAGE ${stage - 1} 클리어! 페널티가 이어집니다!`;
+        setTimeout(() => {
+          startNextStage();
+          isProcessingMatch = false;
+        }, 800);
       } else {
         document.getElementById('message').innerText =
           `STAGE ${stage - 1} 클리어!`;
         setTimeout(() => {
-          // 훈련 모드에서는 이벤트를 발생시키지 않음!
+          isProcessingMatch = false;
           if (!isTrainingMode && Math.random() < 0.4) triggerChoiceEvent();
           else startNextStage();
         }, 800);
       }
     } else {
       currentTurnStartTime = Date.now();
-      setTimeout(() => refreshBoard(), 300);
+      setTimeout(() => {
+        refreshBoard();
+        isProcessingMatch = false;
+      }, 300);
     }
   } else {
-    // 오답 시 처리
     if (shieldCount > 0) {
       shieldCount--;
       document.getElementById('message').innerText = '🛡️ 방패 사용!';
@@ -942,8 +1004,10 @@ function checkMatch() {
       document
         .querySelectorAll('.card')
         .forEach((c) => c.classList.remove('selected'));
+      isProcessingMatch = false;
       return;
     }
+
     combo = 0;
     updateComboDisplay();
     timeLeft -= 10;
@@ -953,22 +1017,26 @@ function checkMatch() {
       .forEach((c) => c.classList.add('shake'));
 
     setTimeout(() => {
-      // 틀린 단어를 빼고 새로운 단어를 풀에서 꺼내옴
       if (remainingWordsPool.length > 0) {
-        const newWord = remainingWordsPool.splice(0, 1)[0]; // 풀에서 맨 앞 1개 가져옴
-        activeIds = activeIds.filter((id) => id !== hanja);
+        const oldWordId = hanja;
+        const oldWordData = wordList.find((w) => w.id === oldWordId);
+        if (oldWordData) remainingWordsPool.push(oldWordData);
+
+        const newWord = remainingWordsPool.splice(0, 1)[0];
+        activeIds = activeIds.filter((id) => id !== oldWordId);
         activeIds.push(newWord.id);
-        let hItem = cardsData.hanja.find((c) => c.id === hanja);
+
+        let hItem = cardsData.hanja.find((c) => c.id === oldWordId);
         if (hItem) {
           hItem.id = newWord.id;
           hItem.text = newWord.cn;
         }
-        let pItem = cardsData.pinyin.find((c) => c.id === hanja);
+        let pItem = cardsData.pinyin.find((c) => c.id === oldWordId);
         if (pItem) {
           pItem.id = newWord.id;
           pItem.text = newWord.py;
         }
-        let kItem = cardsData.korean.find((c) => c.id === hanja);
+        let kItem = cardsData.korean.find((c) => c.id === oldWordId);
         if (kItem) {
           kItem.id = newWord.id;
           kItem.text = newWord.kr;
@@ -976,11 +1044,12 @@ function checkMatch() {
       }
       currentTurnStartTime = Date.now();
       refreshBoard();
+      isProcessingMatch = false;
     }, 800);
   }
 }
 
-// ============= 기타 유틸리티 (이벤트, 랭킹 등) =============
+// ============= 8. 이벤트 유틸리티 =============
 function clearPenaltyEffects() {
   activePenalty = null;
   penaltySpeedMultiplier = 1;
@@ -1091,40 +1160,67 @@ function updateComboDisplay() {
   }
 }
 
+// ============= 9. 랭킹 시스템 (최고 기록 유지 + 안내 메시지 강화 V12) =============
 function showRankingScreen() {
   hideAllScreens();
   document
     .getElementById('ranking-container')
     .classList.remove('screen-hidden');
 
-  let savedData = localStorage.getItem('chineseRankingsV6');
+  let savedData = localStorage.getItem('chineseRankingsV12');
   let rankings = [];
 
-  if (savedData) {
-    rankings = JSON.parse(savedData);
-  } else {
+  try {
+    if (savedData) {
+      rankings = JSON.parse(savedData);
+      if (!Array.isArray(rankings)) rankings = [];
+
+      rankings.forEach((r) => {
+        if (r && typeof r === 'object') {
+          const isFixedRanker = topFixedRankers.some(
+            (fixed) => fixed.name === r.name,
+          );
+          if (!r.isPlayer && !isFixedRanker) {
+            r.score = Math.floor(r.score * 1.005);
+          }
+        }
+      });
+    }
+  } catch (error) {
+    rankings = [];
+  }
+
+  if (rankings.length === 0) {
     rankings = JSON.parse(JSON.stringify(topFixedRankers));
     let tempNames = shuffleArray([...fakeNamesPool]);
     for (let i = 0; i < 95; i++) {
       let botScore =
-        Math.floor(1500000 * Math.pow(0.92, i)) +
-        Math.floor(Math.random() * 1000);
+        Math.floor(1000000 * Math.pow(0.92, i)) +
+        Math.floor(Math.random() * 500);
       rankings.push({ name: tempNames[i], score: botScore, isPlayer: false });
     }
   }
 
-  if (rankings[0].isPlayer === false && score >= rankings[0].score)
-    rankings[0].score = Math.floor(score * 1.05) + 5000;
+  let isNewRecord = false;
+  let previousBest = 0;
 
-  let pIdx = rankings.findIndex((r) => r.name === playerName && r.isPlayer);
-  if (pIdx !== -1) {
-    if (score > rankings[pIdx].score) rankings[pIdx].score = score;
-  } else {
-    rankings.push({ name: playerName, score: score, isPlayer: true });
+  if (playerName) {
+    let pIdx = rankings.findIndex((r) => r.name === playerName && r.isPlayer);
+
+    if (pIdx !== -1) {
+      previousBest = rankings[pIdx].score;
+      if (score > rankings[pIdx].score) {
+        rankings[pIdx].score = score;
+        isNewRecord = true;
+      }
+    } else {
+      rankings.push({ name: playerName, score: score, isPlayer: true });
+      isNewRecord = true;
+    }
   }
 
   rankings.sort((a, b) => b.score - a.score);
-  localStorage.setItem('chineseRankingsV6', JSON.stringify(rankings));
+  localStorage.setItem('chineseRankingsV12', JSON.stringify(rankings));
 
   const listEl = document.getElementById('ranking-list');
   listEl.innerHTML = '';
@@ -1133,6 +1229,7 @@ function showRankingScreen() {
     rankings.findIndex((r) => r.name === playerName && r.isPlayer) + 1;
   let indicesToShow = new Set([0, 1, 2, 3, 4]);
   let pPos = playerFinalRank - 1;
+
   if (pPos > 4) {
     indicesToShow.add(pPos - 1);
     indicesToShow.add(pPos);
@@ -1151,6 +1248,8 @@ function showRankingScreen() {
       listEl.appendChild(ellipsis);
     }
     const r = rankings[idx];
+    if (!r) return;
+
     const li = document.createElement('li');
     let medal =
       idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx + 1}위`;
@@ -1161,12 +1260,15 @@ function showRankingScreen() {
   });
 
   const msgEl = document.getElementById('ranking-msg');
-  if (playerFinalRank === 1)
-    msgEl.innerText = '🎉 대단해요! 당당히 1위를 차지하셨습니다!';
-  else if (playerFinalRank <= 10)
-    msgEl.innerText = `현재 ${playerFinalRank}위! 1위 제갈량이 긴장하고 있습니다!`;
-  else if (playerFinalRank > 100)
-    msgEl.innerText = `현재 100위 밖입니다. 랭크 진입을 위해 더 분발하세요!`;
-  else
-    msgEl.innerText = `현재 순위는 ${playerFinalRank}위입니다. 조금만 더 해볼까요?`;
+
+  if (isNewRecord) {
+    if (playerFinalRank === 1)
+      msgEl.innerText = '🎉 경이롭습니다! 최고 기록으로 천하를 통일하셨습니다!';
+    else if (playerFinalRank <= 5)
+      msgEl.innerText = `🔥 최고 기록 달성! 현재 ${playerFinalRank}위! 전설의 영웅들과 어깨를 나란히 했습니다!`;
+    else
+      msgEl.innerText = `🔥 최고 기록 갱신! 현재 순위는 ${playerFinalRank}위입니다. 조금 더 위를 노려보세요!`;
+  } else {
+    msgEl.innerHTML = `이번 전투 점수: <b style="color:#333;">${score.toLocaleString()}점</b><br>아쉽게도 최고 기록(${previousBest.toLocaleString()}점)을 넘지 못했습니다. 현재 <b>${playerFinalRank}위</b> 유지 중!`;
+  }
 }
