@@ -406,7 +406,10 @@ const topFixedRankers = [
   { name: '여포', score: 1650000, isPlayer: false },
 ];
 
-// 2. 게임 상태 관리 변수
+// ============= 게임 상태 변수 =============
+let isTrainingMode = false; // ★ 모드 구분용 플래그
+let remainingWordsPool = []; // 현재 게임(모드)에서 사용할 남은 단어들
+
 let playerName = '도전자';
 let selections = { hanja: null, pinyin: null, korean: null };
 let score = 0,
@@ -424,17 +427,15 @@ let stageTimerSpeed = 0.5;
 let eventScoreMultiplier = 1;
 let shieldCount = 0;
 let eastwindTimeout = null;
-
 let activePenalty = null;
 let penaltySpeedMultiplier = 1;
 let magicTimeout = null;
 let alertCallback = null;
 
-// BGM 관련 변수
 let currentBgmIndex = 1;
 let isBgmPlaying = false;
 
-// ============= 삼국지 선택 이벤트 DB (총 10종) =============
+// ============= 이벤트 DB =============
 let eventDB = [
   {
     id: 'redhare',
@@ -550,7 +551,7 @@ let eventDB = [
   },
 ];
 
-// ============= 초기 세팅, BGM 및 연출 =============
+// ============= 초기 세팅 및 화면 제어 =============
 document.addEventListener('DOMContentLoaded', () => {
   const bgm1 = document.getElementById('bgm1');
   const bgm2 = document.getElementById('bgm2');
@@ -569,16 +570,48 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // 🎬 배경 이미지 연출 (2.5초 대기 후 블러 + 인트로 등장)
+  // 처음에 배경 보이다가 UI 등장
   setTimeout(() => {
     const bgImage = document.getElementById('bg-image');
-    const introContainer = document.getElementById('intro-container');
-
-    if (bgImage) bgImage.classList.add('blurred'); // 배경 흐려지기
-    if (introContainer) introContainer.classList.remove('start-hidden'); // 인트로 창 나타나기
-  }, 1000);
+    const modeSelect = document.getElementById('mode-select-container');
+    if (bgImage) bgImage.classList.add('blurred');
+    if (modeSelect) modeSelect.classList.remove('start-hidden');
+  }, 2500);
 });
 
+function hideAllScreens() {
+  [
+    'mode-select-container',
+    'training-setup-container',
+    'intro-container',
+    'game-container',
+    'ranking-container',
+  ].forEach((id) => {
+    document.getElementById(id).classList.add('screen-hidden');
+  });
+}
+
+function backToModeSelect() {
+  hideAllScreens();
+  document
+    .getElementById('mode-select-container')
+    .classList.remove('screen-hidden');
+  stopBGM();
+}
+
+function showTrainingSetup() {
+  hideAllScreens();
+  document
+    .getElementById('training-setup-container')
+    .classList.remove('screen-hidden');
+}
+
+function showChallengeSetup() {
+  hideAllScreens();
+  document.getElementById('intro-container').classList.remove('screen-hidden');
+}
+
+// BGM
 function startBGM() {
   if (!isBgmPlaying) return;
   const bgm1 = document.getElementById('bgm1'),
@@ -588,12 +621,10 @@ function startBGM() {
   const activeAudio = currentBgmIndex === 1 ? bgm1 : bgm2;
   activeAudio.play().catch((e) => console.log('BGM 대기중...'));
 }
-
 function stopBGM() {
   document.getElementById('bgm1').pause();
   document.getElementById('bgm2').pause();
 }
-
 function toggleBGM() {
   isBgmPlaying = !isBgmPlaying;
   const btn = document.getElementById('bgm-toggle');
@@ -623,35 +654,76 @@ function closeAlert() {
   }
 }
 
-// ============= 게임 흐름 =============
-function startGameFromIntro() {
-  const nameInput = document.getElementById('player-name').value.trim();
-  if (!nameInput) {
-    showAlert('잠깐!', '이름을 먼저 입력해주세요!');
+// ============= 게임 시작 (모드 분리) =============
+// 1. 훈련 모드 시작
+function startTraining(stageNum) {
+  // 단어 데이터 보호장치 (단어가 부족할 경우 에러 방지)
+  const startIndex = (stageNum - 1) * 30;
+  const endIndex = stageNum * 30;
+
+  if (wordList.length < startIndex + 1) {
+    showAlert(
+      '데이터 부족',
+      `현재 단어가 ${wordList.length}개 밖에 없습니다.\n스크립트에 300개의 단어를 채워주세요!`,
+    );
     return;
   }
-  playerName = nameInput;
-  document.getElementById('intro-container').classList.add('screen-hidden');
+
+  isTrainingMode = true;
+  playerName = `훈련병 (제 ${stageNum} 장)`;
+  document.getElementById('game-title').innerText = `⚔️ 제 ${stageNum} 장 훈련`;
+
+  // 순서대로 30개 자르기 (셔플 안함)
+  remainingWordsPool = wordList.slice(startIndex, endIndex);
+
+  hideAllScreens();
   document.getElementById('game-container').classList.remove('screen-hidden');
+
+  // 아이템 존 숨기기
+  document.getElementById('item-zone').style.display = 'none';
+
   isBgmPlaying = true;
   document.getElementById('bgm-toggle').innerText = '🎵 BGM: 켜짐';
   startBGM();
   startGame();
 }
 
-function backToIntro() {
-  if (timerId) clearInterval(timerId);
-  clearPenaltyEffects();
-  stopBGM();
-  document.getElementById('ranking-container').classList.add('screen-hidden');
-  document.getElementById('game-container').classList.add('screen-hidden');
-  document.getElementById('intro-container').classList.remove('screen-hidden');
-  document.getElementById('player-name').value = '';
+// 2. 도전 모드 시작
+function startGameFromIntro() {
+  const nameInput = document.getElementById('player-name').value.trim();
+  if (!nameInput) {
+    showAlert('잠깐!', '이름을 먼저 입력해주세요!');
+    return;
+  }
+
+  isTrainingMode = false;
+  playerName = nameInput;
+  document.getElementById('game-title').innerText = `🔥 랭킹전 출진`;
+
+  // 300개 단어 전부 가져와서 무작위로 섞기
+  remainingWordsPool = shuffleArray([...wordList]);
+
+  hideAllScreens();
+  document.getElementById('game-container').classList.remove('screen-hidden');
+
+  // 아이템 존 보이기
+  document.getElementById('item-zone').style.display = 'flex';
+
+  isBgmPlaying = true;
+  document.getElementById('bgm-toggle').innerText = '🎵 BGM: 켜짐';
+  startBGM();
+  startGame();
 }
 
 function surrenderGame() {
   if (timerId) clearInterval(timerId);
-  showRankingScreen();
+  if (isTrainingMode) {
+    showAlert('훈련 중단', '훈련을 종료하고 돌아갑니다.', () => {
+      backToModeSelect();
+    });
+  } else {
+    showRankingScreen();
+  }
 }
 
 function shuffleArray(array) {
@@ -678,17 +750,38 @@ function startGame() {
   updateComboDisplay();
   updateItemDisplay();
   if (timerId) clearInterval(timerId);
-  startNextStage(true);
+  startNextStage();
   startTimer();
 }
 
-function startNextStage(isFirst = false) {
+function startNextStage() {
   stageTimerSpeed = 0.5;
   eventScoreMultiplier = 1;
   if (eastwindTimeout) clearTimeout(eastwindTimeout);
   isFrozen = false;
-  const currentWords = shuffleArray([...wordList]).slice(0, 3);
+
+  // 남은 단어가 없으면 풀을 리필 (도전 모드만 무한 반복, 훈련 모드는 클리어 처리)
+  if (remainingWordsPool.length === 0) {
+    if (isTrainingMode) {
+      if (timerId) clearInterval(timerId);
+      showAlert(
+        '훈련 완료!',
+        '해당 장의 모든 단어를 격파했습니다!\n정말 훌륭합니다.',
+        () => {
+          backToModeSelect();
+        },
+      );
+      return;
+    } else {
+      remainingWordsPool = shuffleArray([...wordList]);
+    }
+  }
+
+  // 앞에서부터 3개씩 뽑기 (훈련 모드는 원래 순서 유지됨, 도전 모드는 이미 셔플되어 있음)
+  const currentWords = remainingWordsPool.splice(0, 3);
   activeIds = currentWords.map((w) => w.id);
+
+  // 뽑은 3개의 카드는 화면상에서 섞이도록 처리
   cardsData.hanja = shuffleArray(
     currentWords.map((w) => ({ id: w.id, text: w.cn, solved: false })),
   );
@@ -698,6 +791,7 @@ function startNextStage(isFirst = false) {
   cardsData.korean = shuffleArray(
     currentWords.map((w) => ({ id: w.id, text: w.kr, solved: false })),
   );
+
   currentTurnStartTime = Date.now();
   refreshBoard();
 }
@@ -711,220 +805,29 @@ function startTimer() {
       timerBar.style.background = timeLeft < 30 ? '#f44336' : '#4caf50';
       if (timeLeft <= 0) {
         clearInterval(timerId);
-        showAlert(
-          '전투 종료!',
-          `시간이 모두 흘렀습니다.\n\n최종 달성: STAGE ${stage}\n최종 점수: ${score.toLocaleString()}점`,
-          () => {
-            showRankingScreen();
-          },
-        );
+        if (isTrainingMode) {
+          showAlert(
+            '시간 초과!',
+            `조금 더 연습해 봅시다!\n달성한 훈련도: ${stage}단계`,
+            () => {
+              backToModeSelect();
+            },
+          );
+        } else {
+          showAlert(
+            '전투 종료!',
+            `시간이 모두 흘렀습니다.\n\n최종 달성: STAGE ${stage}\n최종 점수: ${score.toLocaleString()}점`,
+            () => {
+              showRankingScreen();
+            },
+          );
+        }
       }
     }
   }, 100);
 }
 
-// ============= 🏆 100명 랭킹 시스템 (300만 점 스케일) =============
-function showRankingScreen() {
-  clearPenaltyEffects();
-  stopBGM();
-  document.getElementById('game-container').classList.add('screen-hidden');
-  document
-    .getElementById('ranking-container')
-    .classList.remove('screen-hidden');
-
-  let savedData = localStorage.getItem('chineseRankingsV6');
-  let rankings = [];
-
-  if (savedData) {
-    rankings = JSON.parse(savedData);
-  } else {
-    // 1~5위 영웅 고정
-    rankings = JSON.parse(JSON.stringify(topFixedRankers));
-    // 6~100위 랜덤 생성
-    let tempNames = shuffleArray([...fakeNamesPool]);
-    for (let i = 0; i < 95; i++) {
-      let botScore =
-        Math.floor(1500000 * Math.pow(0.92, i)) +
-        Math.floor(Math.random() * 1000);
-      rankings.push({ name: tempNames[i], score: botScore, isPlayer: false });
-    }
-  }
-
-  // 1등 도망가기 (얄미운 제갈량)
-  if (rankings[0].isPlayer === false && score >= rankings[0].score) {
-    rankings[0].score = Math.floor(score * 1.05) + 5000;
-  }
-
-  // 내 점수 갱신
-  let pIdx = rankings.findIndex((r) => r.name === playerName && r.isPlayer);
-  if (pIdx !== -1) {
-    if (score > rankings[pIdx].score) rankings[pIdx].score = score;
-  } else {
-    rankings.push({ name: playerName, score: score, isPlayer: true });
-  }
-
-  rankings.sort((a, b) => b.score - a.score);
-  localStorage.setItem('chineseRankingsV6', JSON.stringify(rankings));
-
-  const listEl = document.getElementById('ranking-list');
-  listEl.innerHTML = '';
-
-  let playerFinalRank =
-    rankings.findIndex((r) => r.name === playerName && r.isPlayer) + 1;
-  let indicesToShow = new Set([0, 1, 2, 3, 4]); // 1~5위는 항상 노출
-
-  let pPos = playerFinalRank - 1;
-  if (pPos > 4) {
-    indicesToShow.add(pPos - 1);
-    indicesToShow.add(pPos);
-    if (pPos + 1 < rankings.length) indicesToShow.add(pPos + 1);
-  }
-
-  let sortedIndices = Array.from(indicesToShow)
-    .filter((i) => i >= 0 && i < rankings.length)
-    .sort((a, b) => a - b);
-  let lastIdx = -1;
-
-  sortedIndices.forEach((idx) => {
-    if (lastIdx !== -1 && idx - lastIdx > 1) {
-      const ellipsis = document.createElement('li');
-      ellipsis.innerHTML = `<span style="color:#aaa; display:block; text-align:center; width:100%;">· · ·</span>`;
-      listEl.appendChild(ellipsis);
-    }
-    const r = rankings[idx];
-    const li = document.createElement('li');
-    let medal =
-      idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx + 1}위`;
-    if (idx === pPos) li.classList.add('player-row');
-    li.innerHTML = `<span>${medal} ${r.name}</span> <span>${r.score.toLocaleString()} 점</span>`;
-    listEl.appendChild(li);
-    lastIdx = idx;
-  });
-
-  const msgEl = document.getElementById('ranking-msg');
-  if (playerFinalRank === 1)
-    msgEl.innerText = '🎉 대단해요! 당당히 1위를 차지하셨습니다!';
-  else if (playerFinalRank <= 10)
-    msgEl.innerText = `현재 ${playerFinalRank}위! 1위 제갈량이 긴장하고 있습니다!`;
-  else if (playerFinalRank > 100)
-    msgEl.innerText = `현재 100위 밖입니다. 랭크 진입을 위해 더 분발하세요!`;
-  else
-    msgEl.innerText = `현재 순위는 ${playerFinalRank}위입니다. 조금만 더 해볼까요?`;
-}
-
-// ============= 기타 유틸리티 =============
-function clearPenaltyEffects() {
-  activePenalty = null;
-  penaltySpeedMultiplier = 1;
-  document.getElementById('penalty-banner').classList.add('hidden');
-  document.body.classList.remove('fire-bg');
-  if (magicTimeout) clearTimeout(magicTimeout);
-  document
-    .querySelectorAll('.magic-hidden')
-    .forEach((c) => c.classList.remove('magic-hidden'));
-}
-
-function applyYellowTurbanEffect() {
-  if (magicTimeout) clearTimeout(magicTimeout);
-  document
-    .querySelectorAll('#pinyin-row .card, #korean-row .card')
-    .forEach((c) => c.classList.remove('magic-hidden'));
-  magicTimeout = setTimeout(() => {
-    if (activePenalty === 'yellow') {
-      document
-        .querySelectorAll('#pinyin-row .card, #korean-row .card')
-        .forEach((c) => {
-          if (!c.classList.contains('hidden')) c.classList.add('magic-hidden');
-        });
-    }
-  }, 3000);
-}
-
-// 🔥 수정된 트리거 로직: 초선의 미인계 일회성 적용
-function triggerChoiceEvent() {
-  // 이벤트 배열이 비어있으면 그냥 리턴
-  if (eventDB.length === 0) return;
-
-  isFrozen = true;
-  const randomIndex = Math.floor(Math.random() * eventDB.length);
-  const randomEvent = eventDB[randomIndex];
-
-  document.getElementById('event-title').innerText = randomEvent.title;
-  document.getElementById('event-desc').innerText = randomEvent.desc;
-
-  const imgEl = document.getElementById('event-image');
-  if (randomEvent.image) {
-    imgEl.src = randomEvent.image;
-    imgEl.style.display = 'block';
-  } else {
-    imgEl.style.display = 'none';
-  }
-
-  document.getElementById('event-modal').classList.remove('hidden');
-
-  // 초선의 미인계는 한 번 등장하면 목록에서 즉시 제거
-  if (randomEvent.id === 'diaochan') {
-    eventDB.splice(randomIndex, 1);
-  }
-
-  document.querySelector('.btn-accept').onclick = () => {
-    document.getElementById('event-modal').classList.add('hidden');
-    isFrozen = false;
-    document.getElementById('message').innerText =
-      `[${randomEvent.title}] 발동!`;
-    randomEvent.action();
-  };
-
-  document.querySelector('.btn-decline').onclick = () => {
-    document.getElementById('event-modal').classList.add('hidden');
-    isFrozen = false;
-    document.getElementById('message').innerText = `이벤트를 거절했습니다.`;
-  };
-}
-
-function useHint() {
-  if (items.hint <= 0 || !selections.hanja) return;
-  items.hint--;
-  updateItemDisplay();
-  const correctId = selections.hanja;
-  const targetRowId = Math.random() > 0.5 ? 'pinyin-row' : 'korean-row';
-  document.querySelectorAll(`#${targetRowId} .card`).forEach((c) => {
-    if (c.dataset.id == correctId && !c.classList.contains('hidden')) {
-      c.classList.remove('magic-hidden');
-      c.classList.add('highlight');
-      setTimeout(() => c.classList.remove('highlight'), 1500);
-    }
-  });
-}
-
-function useFreeze() {
-  if (items.freeze <= 0) return;
-  items.freeze--;
-  isFrozen = true;
-  updateItemDisplay();
-  document.getElementById('timer-bar').style.background = '#81d4fa';
-  setTimeout(() => {
-    isFrozen = false;
-  }, 5000);
-}
-
-function updateItemDisplay() {
-  document.getElementById('hint-count').innerText = items.hint;
-  document.getElementById('freeze-count').innerText = items.freeze;
-  document.getElementById('item-hint').disabled = items.hint <= 0;
-  document.getElementById('item-freeze').disabled = items.freeze <= 0;
-}
-
-function updateComboDisplay() {
-  const comboEl = document.getElementById('combo-text');
-  if (combo >= 2) {
-    document.getElementById('combo-count').innerText = combo;
-    comboEl.className = 'combo-active';
-  } else {
-    comboEl.className = 'combo-hidden';
-  }
-}
-
+// ============= 게임 플레이 로직 =============
 function autoSolveOne() {
   const target = cardsData.hanja.find((c) => !c.solved);
   if (target) {
@@ -977,6 +880,7 @@ function checkMatch() {
     let earnedScore = Math.floor(
       (100 + speedBonus) * comboMultiplier * eventScoreMultiplier,
     );
+
     score += earnedScore;
     timeLeft = Math.min(100, timeLeft + 15);
     document.getElementById('score').innerText = score.toLocaleString();
@@ -990,7 +894,8 @@ function checkMatch() {
     cardsData.pinyin.find((c) => c.id === hanja).solved = true;
     cardsData.korean.find((c) => c.id === hanja).solved = true;
 
-    if (combo > 0) {
+    // 훈련 모드에서는 페널티(화공/요술)를 발동시키지 않음!
+    if (!isTrainingMode && combo > 0) {
       if (combo % 20 === 0) {
         activePenalty = 'fire';
         penaltySpeedMultiplier = 3;
@@ -1010,16 +915,18 @@ function checkMatch() {
       timeLeft = Math.min(100, timeLeft + 20);
       stage++;
       document.getElementById('stage').innerText = stage;
+
       if (activePenalty) {
         document.getElementById('message').innerText =
           `STAGE ${stage - 1} 클리어! 하지만 페널티가 이어집니다!`;
-        setTimeout(() => startNextStage(false), 800);
+        setTimeout(() => startNextStage(), 800);
       } else {
         document.getElementById('message').innerText =
           `STAGE ${stage - 1} 클리어!`;
         setTimeout(() => {
-          startNextStage(false);
-          if (Math.random() < 0.4) setTimeout(() => triggerChoiceEvent(), 100);
+          // 훈련 모드에서는 이벤트를 발생시키지 않음!
+          if (!isTrainingMode && Math.random() < 0.4) triggerChoiceEvent();
+          else startNextStage();
         }, 800);
       }
     } else {
@@ -1027,6 +934,7 @@ function checkMatch() {
       setTimeout(() => refreshBoard(), 300);
     }
   } else {
+    // 오답 시 처리
     if (shieldCount > 0) {
       shieldCount--;
       document.getElementById('message').innerText = '🛡️ 방패 사용!';
@@ -1043,10 +951,11 @@ function checkMatch() {
     document
       .querySelectorAll('.card.selected')
       .forEach((c) => c.classList.add('shake'));
+
     setTimeout(() => {
-      const pool = wordList.filter((w) => !activeIds.includes(w.id));
-      if (pool.length > 0) {
-        const newWord = pool[Math.floor(Math.random() * pool.length)];
+      // 틀린 단어를 빼고 새로운 단어를 풀에서 꺼내옴
+      if (remainingWordsPool.length > 0) {
+        const newWord = remainingWordsPool.splice(0, 1)[0]; // 풀에서 맨 앞 1개 가져옴
         activeIds = activeIds.filter((id) => id !== hanja);
         activeIds.push(newWord.id);
         let hItem = cardsData.hanja.find((c) => c.id === hanja);
@@ -1069,4 +978,195 @@ function checkMatch() {
       refreshBoard();
     }, 800);
   }
+}
+
+// ============= 기타 유틸리티 (이벤트, 랭킹 등) =============
+function clearPenaltyEffects() {
+  activePenalty = null;
+  penaltySpeedMultiplier = 1;
+  document.getElementById('penalty-banner').classList.add('hidden');
+  document.body.classList.remove('fire-bg');
+  if (magicTimeout) clearTimeout(magicTimeout);
+  document
+    .querySelectorAll('.magic-hidden')
+    .forEach((c) => c.classList.remove('magic-hidden'));
+}
+
+function applyYellowTurbanEffect() {
+  if (magicTimeout) clearTimeout(magicTimeout);
+  document
+    .querySelectorAll('#pinyin-row .card, #korean-row .card')
+    .forEach((c) => c.classList.remove('magic-hidden'));
+  magicTimeout = setTimeout(() => {
+    if (activePenalty === 'yellow') {
+      document
+        .querySelectorAll('#pinyin-row .card, #korean-row .card')
+        .forEach((c) => {
+          if (!c.classList.contains('hidden')) c.classList.add('magic-hidden');
+        });
+    }
+  }, 3000);
+}
+
+function triggerChoiceEvent() {
+  if (eventDB.length === 0) {
+    startNextStage();
+    return;
+  }
+
+  isFrozen = true;
+  const randomIndex = Math.floor(Math.random() * eventDB.length);
+  const randomEvent = eventDB[randomIndex];
+
+  document.getElementById('event-title').innerText = randomEvent.title;
+  document.getElementById('event-desc').innerText = randomEvent.desc;
+  const imgEl = document.getElementById('event-image');
+  if (randomEvent.image) {
+    imgEl.src = randomEvent.image;
+    imgEl.style.display = 'block';
+  } else {
+    imgEl.style.display = 'none';
+  }
+
+  document.getElementById('event-modal').classList.remove('hidden');
+
+  if (randomEvent.id === 'diaochan') eventDB.splice(randomIndex, 1);
+
+  document.querySelector('.btn-accept').onclick = () => {
+    document.getElementById('event-modal').classList.add('hidden');
+    isFrozen = false;
+    document.getElementById('message').innerText =
+      `[${randomEvent.title}] 발동!`;
+    randomEvent.action();
+    startNextStage();
+  };
+  document.querySelector('.btn-decline').onclick = () => {
+    document.getElementById('event-modal').classList.add('hidden');
+    isFrozen = false;
+    document.getElementById('message').innerText = `이벤트를 거절했습니다.`;
+    startNextStage();
+  };
+}
+
+function useHint() {
+  if (items.hint <= 0 || !selections.hanja) return;
+  items.hint--;
+  updateItemDisplay();
+  const correctId = selections.hanja;
+  const targetRowId = Math.random() > 0.5 ? 'pinyin-row' : 'korean-row';
+  document.querySelectorAll(`#${targetRowId} .card`).forEach((c) => {
+    if (c.dataset.id == correctId && !c.classList.contains('hidden')) {
+      c.classList.remove('magic-hidden');
+      c.classList.add('highlight');
+      setTimeout(() => c.classList.remove('highlight'), 1500);
+    }
+  });
+}
+
+function useFreeze() {
+  if (items.freeze <= 0) return;
+  items.freeze--;
+  isFrozen = true;
+  updateItemDisplay();
+  document.getElementById('timer-bar').style.background = '#81d4fa';
+  setTimeout(() => {
+    isFrozen = false;
+  }, 5000);
+}
+
+function updateItemDisplay() {
+  document.getElementById('hint-count').innerText = items.hint;
+  document.getElementById('freeze-count').innerText = items.freeze;
+  document.getElementById('item-hint').disabled = items.hint <= 0;
+  document.getElementById('item-freeze').disabled = items.freeze <= 0;
+}
+
+function updateComboDisplay() {
+  const comboEl = document.getElementById('combo-text');
+  if (combo >= 2) {
+    document.getElementById('combo-count').innerText = combo;
+    comboEl.className = 'combo-active';
+  } else {
+    comboEl.className = 'combo-hidden';
+  }
+}
+
+function showRankingScreen() {
+  hideAllScreens();
+  document
+    .getElementById('ranking-container')
+    .classList.remove('screen-hidden');
+
+  let savedData = localStorage.getItem('chineseRankingsV6');
+  let rankings = [];
+
+  if (savedData) {
+    rankings = JSON.parse(savedData);
+  } else {
+    rankings = JSON.parse(JSON.stringify(topFixedRankers));
+    let tempNames = shuffleArray([...fakeNamesPool]);
+    for (let i = 0; i < 95; i++) {
+      let botScore =
+        Math.floor(1500000 * Math.pow(0.92, i)) +
+        Math.floor(Math.random() * 1000);
+      rankings.push({ name: tempNames[i], score: botScore, isPlayer: false });
+    }
+  }
+
+  if (rankings[0].isPlayer === false && score >= rankings[0].score)
+    rankings[0].score = Math.floor(score * 1.05) + 5000;
+
+  let pIdx = rankings.findIndex((r) => r.name === playerName && r.isPlayer);
+  if (pIdx !== -1) {
+    if (score > rankings[pIdx].score) rankings[pIdx].score = score;
+  } else {
+    rankings.push({ name: playerName, score: score, isPlayer: true });
+  }
+
+  rankings.sort((a, b) => b.score - a.score);
+  localStorage.setItem('chineseRankingsV6', JSON.stringify(rankings));
+
+  const listEl = document.getElementById('ranking-list');
+  listEl.innerHTML = '';
+
+  let playerFinalRank =
+    rankings.findIndex((r) => r.name === playerName && r.isPlayer) + 1;
+  let indicesToShow = new Set([0, 1, 2, 3, 4]);
+  let pPos = playerFinalRank - 1;
+  if (pPos > 4) {
+    indicesToShow.add(pPos - 1);
+    indicesToShow.add(pPos);
+    if (pPos + 1 < rankings.length) indicesToShow.add(pPos + 1);
+  }
+
+  let sortedIndices = Array.from(indicesToShow)
+    .filter((i) => i >= 0 && i < rankings.length)
+    .sort((a, b) => a - b);
+  let lastIdx = -1;
+
+  sortedIndices.forEach((idx) => {
+    if (lastIdx !== -1 && idx - lastIdx > 1) {
+      const ellipsis = document.createElement('li');
+      ellipsis.innerHTML = `<span style="color:#aaa; display:block; text-align:center; width:100%;">· · ·</span>`;
+      listEl.appendChild(ellipsis);
+    }
+    const r = rankings[idx];
+    const li = document.createElement('li');
+    let medal =
+      idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx + 1}위`;
+    if (idx === pPos) li.classList.add('player-row');
+    li.innerHTML = `<span>${medal} ${r.name}</span> <span>${r.score.toLocaleString()} 점</span>`;
+    listEl.appendChild(li);
+    lastIdx = idx;
+  });
+
+  const msgEl = document.getElementById('ranking-msg');
+  if (playerFinalRank === 1)
+    msgEl.innerText = '🎉 대단해요! 당당히 1위를 차지하셨습니다!';
+  else if (playerFinalRank <= 10)
+    msgEl.innerText = `현재 ${playerFinalRank}위! 1위 제갈량이 긴장하고 있습니다!`;
+  else if (playerFinalRank > 100)
+    msgEl.innerText = `현재 100위 밖입니다. 랭크 진입을 위해 더 분발하세요!`;
+  else
+    msgEl.innerText = `현재 순위는 ${playerFinalRank}위입니다. 조금만 더 해볼까요?`;
 }
