@@ -136,7 +136,7 @@ const wordList = [
   { id: 134, cn: '晚上', py: 'wǎnshang', kr: '저녁' },
   { id: 135, cn: '去年', py: 'qùnián', kr: '작년' },
   { id: 136, cn: '明年', py: 'míngnián', kr: '내년' },
-  { id: 137, cn: '小时', py: 'xiǎoshí', kr: '시간(hour)' },
+  { id: 137, cn: '小时', py: 'xiǎoshí', kr: '시간' },
   { id: 138, cn: '分钟', py: 'fēnzhōng', kr: '분' },
   { id: 139, cn: '时间', py: 'shíjiān', kr: '시간' },
   { id: 140, cn: '生日', py: 'shēngrì', kr: '생일' },
