@@ -154,6 +154,10 @@ h1 {
   grid-template-columns: repeat(2, 1fr);
   gap: 10px;
   margin-top: 20px;
+
+  /* 기존 설정들 유지하시고 아래 내용 추가 */
+  max-height: 50vh; /* 화면 높이의 50%까지만 커지게 제한 */
+  overflow-y: auto; /* 넘치면 스크롤 생성 */
 }
 .stage-grid button {
   background: #f8f9fa;
