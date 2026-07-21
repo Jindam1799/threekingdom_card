@@ -9,7 +9,6 @@
   <body>
     <!-- 🌌 배경 이미지 영역 -->
     <div id="bg-image"></div>
-
     <!-- 1️⃣ 최초 모드 선택 화면 -->
     <div id="mode-select-container" class="start-hidden">
       <h1>🐉 삼국지 중국어 격파</h1>
@@ -28,14 +27,44 @@
     <div id="training-setup-container" class="screen-hidden">
       <h1>⚔️ 훈련장</h1>
       <p class="subtitle">
-        훈련할 장(스테이지)을 선택하세요.<br />(각 장마다 100개의 단어가
-        순서대로 등장합니다)
+        훈련할 장(스테이지)을 선택하세요.<br />(각 장마다 30개의 단어가 순서대로
+        등장합니다)
       </p>
-
-      <div class="stage-grid" id="stage-grid"></div>
-
+      <div class="stage-grid">
+        <button onclick="startTraining(1)">
+          제 1 장<br /><small>(1~30)</small>
+        </button>
+        <button onclick="startTraining(2)">
+          제 2 장<br /><small>(31~60)</small>
+        </button>
+        <button onclick="startTraining(3)">
+          제 3 장<br /><small>(61~90)</small>
+        </button>
+        <button onclick="startTraining(4)">
+          제 4 장<br /><small>(91~120)</small>
+        </button>
+        <button onclick="startTraining(5)">
+          제 5 장<br /><small>(121~150)</small>
+        </button>
+        <button onclick="startTraining(6)">
+          제 6 장<br /><small>(151~180)</small>
+        </button>
+        <button onclick="startTraining(7)">
+          제 7 장<br /><small>(181~210)</small>
+        </button>
+        <button onclick="startTraining(8)">
+          제 8 장<br /><small>(211~240)</small>
+        </button>
+        <button onclick="startTraining(9)">
+          제 9 장<br /><small>(241~270)</small>
+        </button>
+        <button onclick="startTraining(10)">
+          제 10 장<br /><small>(271~300)</small>
+        </button>
+      </div>
       <button class="btn-back" onclick="backToModeSelect()">돌아가기</button>
     </div>
+
     <!-- 3️⃣ 도전 모드(출진) 이름 입력 화면 -->
     <div id="intro-container" class="screen-hidden">
       <h1>🔥 전장 출진</h1>
@@ -139,7 +168,6 @@
       <div class="ranking-board">
         <ul id="ranking-list"></ul>
       </div>
-
       <button id="restart-btn" onclick="backToModeSelect()">
         메인으로 돌아가기
       </button>
